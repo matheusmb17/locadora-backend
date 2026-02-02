@@ -105,9 +105,12 @@ builder.Services.AddScoped<IRentalsService, RentalsService>();
 builder.Services.AddScoped<ILoginUserService, LoginUserService>();
 builder.Services.AddScoped<IAuthenticateService, AuthenticateService>();
 
-
 var app = builder.Build();
 var scope = app.Services.CreateScope();
+
+var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+dbContext.Database.Migrate();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
@@ -118,18 +121,6 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
         options.DocExpansion(DocExpansion.None);
     });
 }
-
-app.MapGet("/export-swagger", async (ISwaggerProvider swaggerProvider, HttpContext httpContext) =>
-{
-    var swagger = swaggerProvider.GetSwagger("v1"); // Substitua "v1" pela versão apropriada
-    var parentDirectory = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), ".."));
-    var filePath = Path.Combine(parentDirectory, "swagger.json");
-
-    var json = JsonConvert.SerializeObject(swagger, Formatting.Indented);
-    await File.WriteAllTextAsync(filePath, json);
-
-    return Results.Ok($"Swagger salvo em {filePath}");
-});
 
 app.UseHttpsRedirection();
 

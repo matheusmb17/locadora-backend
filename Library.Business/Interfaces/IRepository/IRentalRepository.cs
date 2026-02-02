@@ -8,5 +8,6 @@ namespace Library.Business.Interfaces.IRepository
         Task<PagedBaseResponse<Rentals>> GetAllRentalsPaged(FilterDb request);
         Task<List<Rentals>> GetAllRentals();
         Task<Rentals> GetRentalById(int rentalId);
+        Task<Rentals> GetRentalByIdNoIncludes(int rentalId);
     }
 }

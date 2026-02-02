@@ -41,5 +41,10 @@ namespace Library.Data.Repository
         {
             return await _context.Rentals.AsNoTracking().Include(r => r.User).Include(r => r.Book).FirstOrDefaultAsync(r => r.Id == rentalId);
         }
+
+        public async Task<Rentals> GetRentalByIdNoIncludes(int rentalId)
+        {
+            return await _context.Rentals.AsNoTracking().FirstOrDefaultAsync(r => r.Id == rentalId);
+        }
     }
 }

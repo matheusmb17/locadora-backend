@@ -48,10 +48,10 @@ namespace Library.Business.Services
         {
             var validation = new RentalDtoValidator().Validate(model);
             if (!validation.IsValid) return ResultService.BadRequest(validation);
+            
+            if (!_bookRepository.Search(b => b.Id == model.BookId).Result.Any()) return ResultService.NotFound<CreateRentalDto>("Livro não encontrado!");
 
-            if (_bookRepository.Search(b => b.Id == model.BookId).Result.Any()) return ResultService.NotFound<CreateRentalDto>("Livro não encontrado!");
-
-            if (_userRepository.Search(u => u.Id == model.UserId).Result.Any()) return ResultService.NotFound<CreateRentalDto>("Usuário não encontrado!");
+            if (!_userRepository.Search(u => u.Id == model.UserId).Result.Any()) return ResultService.NotFound<CreateRentalDto>("Usuário não encontrado!");
 
             if (model.RentalDate != DateTime.Now.Date) return ResultService.BadRequest("Data de aluguel não pode ser diferente da data de Hoje!");
 
@@ -59,7 +59,7 @@ namespace Library.Business.Services
 
             if (model.ForecastDate < model.RentalDate) return ResultService.BadRequest("Data de Previsão não pode ser anterior à Data do Aluguel!");
 
-            if (_rentalRepository.Search(r => r.UserId == model.UserId && r.BookId == model.BookId).Result.Any()) return ResultService.BadRequest("Usuário já possui aluguel desse livro!");
+            if (_rentalRepository.Search(r => r.UserId == model.UserId && r.BookId == model.BookId && r.ReturnDate == null).Result.Any()) return ResultService.BadRequest("Usuário já possui aluguel desse livro!");
 
             var book = await _bookRepository.GetBookById(model.BookId);
             book.Quantity--;
@@ -75,7 +75,7 @@ namespace Library.Business.Services
 
         public async Task<ResultService> Update(UpdateRentalDto model)
         {
-            var result = await _rentalRepository.GetRentalById(model.Id);
+            var result = await _rentalRepository.GetRentalByIdNoIncludes(model.Id);
             if (result == null) return ResultService.NotFound<UpdateRentalDto>("Aluguel não encontrado!");
 
             var rental = _mapper.Map(model, result);
@@ -84,27 +84,21 @@ namespace Library.Business.Services
             if (!validation.IsValid) return ResultService.BadRequest(validation);
 
             if (rental.ReturnDate.Value.Date != DateTime.Now.Date) return ResultService.BadRequest("Data de devolução não pode ser diferente da data de Hoje!");
+            
+            rental.Status = rental.ForecastDate < rental.ReturnDate ? "Atrasado" : "No prazo";
 
-            if (rental.ForecastDate < rental.ReturnDate)
-            {
-                rental.Status = "Atrasado";
-            }
-            else
-            {
-                rental.Status = "No prazo";
-            }
-
-            await _rentalRepository.Update(rental);
             var book = await _bookRepository.GetBookById(rental.BookId);
             book.Quantity++;
             book.Rented--;
+
             await _bookRepository.Update(book);
+            await _rentalRepository.Update(rental);
             return ResultService.Ok("Devolução realizada com êxito!");
         }
 
         public async Task<ResultService> Delete(int id)
         {
-            var rental = await _rentalRepository.GetRentalById(id);
+            var rental = await _rentalRepository.GetRentalByIdNoIncludes(id);
             if (rental == null) return ResultService.NotFound<RentalDto>("Aluguel não encontrado!");
 
             await _rentalRepository.Delete(id);
