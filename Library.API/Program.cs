@@ -8,15 +8,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
-using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Reflection;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
 {
     options.SuppressModelStateInvalidFilter = true;
@@ -32,7 +29,8 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Books 📚",
     });
     var xmlCommentsFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlCommentsFile));
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlCommentsFile);
+    if (File.Exists(xmlPath)) options.IncludeXmlComments(xmlPath);
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Type = SecuritySchemeType.ApiKey,
@@ -76,7 +74,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(options =>
 {
-    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
@@ -90,14 +88,11 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Repos
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IPublisherRepository, PublisherRepository>();
 builder.Services.AddScoped<IRentalRepository, RentalRepository>();
 builder.Services.AddScoped<ILoginUserRepository, LoginUserRepository>();
-
-// Services
 builder.Services.AddScoped<IUsersService, UsersService>();
 builder.Services.AddScoped<IBooksService, BooksService>();
 builder.Services.AddScoped<IPublishersService, PublishersService>();
@@ -111,7 +106,6 @@ var scope = app.Services.CreateScope();
 var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
 dbContext.Database.Migrate();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
@@ -129,7 +123,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-//app.UseMiddleware<CustomExceptionHandlerMiddleware>();
+
 app.UseCors("AllowLocalhost8080");
 
 app.Run();

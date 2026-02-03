@@ -342,4 +342,5 @@ Library.API/Library.db
 Library.API/Library.db-shm
 Library.API/Library.db-wal
 .vscode
+.env
 
