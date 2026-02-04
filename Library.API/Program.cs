@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Text;
 using AutoMapper;
 using Library.Business.Interfaces.IRepository;
 using Library.Business.Interfaces.IServices;
@@ -9,17 +11,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
-using System.Reflection;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
 {
     options.SuppressModelStateInvalidFilter = true;
 });
 builder.Services.AddEndpointsApiExplorer();
-
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -54,17 +52,18 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 builder.Services.AddDbContextPool<DataContext>(options =>
-options.UseMySql(builder.Configuration.GetConnectionString("default"),
-                      ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("default"))));
+    options.UseMySql(builder.Configuration.GetConnectionString("default"),
+        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("default"))));
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowLocalhost8080",
-        builder =>
+    options.AddPolicy("CorsOrigins",
+        policyBuilder =>
         {
-            builder.WithOrigins("http://localhost:8080")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+            policyBuilder
+                .WithOrigins(builder.Configuration["CorsOrigins"].Split(";", StringSplitOptions.RemoveEmptyEntries))
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
 });
 
@@ -102,7 +101,6 @@ builder.Services.AddScoped<IAuthenticateService, AuthenticateService>();
 
 var app = builder.Build();
 var scope = app.Services.CreateScope();
-
 var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
 dbContext.Database.Migrate();
 
@@ -117,13 +115,8 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 }
 
 app.UseHttpsRedirection();
-
+app.UseCors("CorsOrigins");
 app.UseAuthentication();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
-app.UseCors("AllowLocalhost8080");
-
 app.Run();

@@ -12,3 +12,4 @@ services:
       - jwt__issuer=${ISSUER}
       - jwt__audience=${AUDIENCE}
       - ConnectionStrings__default=server=${SERVER};port=${PORT};database=${DB};user=${DB_USER};password=${DB_PASSWORD};Persist Security Info=False; Connect Timeout=300;
+      - CorsOrigins=${CORS_ORIGINS}
